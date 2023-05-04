@@ -143,30 +143,36 @@ function uniteTemplate() {
         { withFileTypes: true },
         (error, files) => {
           if (error) throw new Error('something got wrong...');
-          for (const file of files) {
-            const [name, ...ext] = file.name.split('.');
 
-            if (file.isFile() && ext.at(-1) === 'html') {
-              fs.readFile(
-                path.join(__dirname, 'components', file.name),
-                'utf8',
-                function (error, data) {
-                  if (error) throw new Error('something got wrong...');
-                  result = result.replace(`{{${name}}}`, data);
-
-                  fs.writeFile(
-                    path.resolve(__dirname, './project-dist', 'index.html'),
-                    result,
-                    (error) => {
-                      if (error) throw new Error('something got wrong...');
-                    }
-                  );
-                }
-              );
-            }
-          }
+          replacePart(result, files);
         }
       );
     }
   );
+}
+
+function replacePart(result, files) {
+  const [file, nextFile] = files;
+  const [name, ...ext] = file.name.split('.');
+  if (file.isFile() && ext.at(-1) === 'html') {
+    fs.readFile(
+      path.join(__dirname, 'components', file.name),
+      'utf8',
+      function (error, data) {
+        if (error) throw new Error('something got wrong...');
+        result = result.replace(`{{${name}}}`, data);
+
+        fs.writeFile(
+          path.resolve(__dirname, './project-dist', 'index.html'),
+          result,
+          (error) => {
+            if (error) throw new Error('something got wrong...');
+            nextFile
+              ? replacePart(result, files.slice(files.indexOf(file) + 1))
+              : null;
+          }
+        );
+      }
+    );
+  }
 }
